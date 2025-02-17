@@ -34,7 +34,6 @@ def build_graph_from_excel(df):
     return G, group_to_color
 
 def build_subgraph_for_nodes(G, node_list):
-    # Функция, которая объединяет "окрестности" нескольких процессов
     all_nodes = set()
     for center_node in node_list:
         if center_node not in G:
@@ -111,7 +110,6 @@ def create_plotly_figure(G, group_to_color, title="Plotly Graph"):
         name="Подписи связей"
     )
 
-    # Фиктивные трейсы для легенды (каждое значение F)
     legend_traces = []
     for grp, clr in group_to_color.items():
         dummy_trace = go.Scatter(
@@ -151,7 +149,7 @@ def create_plotly_figure(G, group_to_color, title="Plotly Graph"):
             arrowhead=3,
             arrowsize=1,
             arrowwidth=1,
-            arrowcolor='#FF0000',  # контрастный цвет стрелки
+            arrowcolor='#FF0000',
             opacity=1
         )
 
@@ -165,9 +163,14 @@ def main():
 
     root = tk.Tk()
     root.title("Выбор процессов")
+    root.geometry("400x500")
 
-    label = tk.Label(root, text="Выберите один или несколько процессов:")
+    label = tk.Label(root, text="Поиск процессов:")
     label.pack(padx=10, pady=5)
+
+    search_var = tk.StringVar()
+    search_entry = tk.Entry(root, textvariable=search_var)
+    search_entry.pack(padx=10, pady=5, fill="x")
 
     frame_list = tk.Frame(root)
     frame_list.pack(padx=10, pady=5, fill="both", expand=True)
@@ -181,9 +184,31 @@ def main():
     listbox.pack(side=tk.LEFT, fill="both", expand=True)
     scrollbar.config(command=listbox.yview)
 
+    def apply_filter():
+        query = search_var.get().lower()
+        listbox.delete(0, tk.END)
+        for proc in unique_b:
+            if query in proc.lower():
+                listbox.insert(tk.END, proc)
+
+    def clear_filter():
+        search_var.set("")
+        listbox.delete(0, tk.END)
+        for proc in unique_b:
+            listbox.insert(tk.END, proc)
+
+    btn_frame = tk.Frame(root)
+    btn_frame.pack(padx=10, pady=5, fill="x")
+
+    btn_filter = tk.Button(btn_frame, text="Найти", command=apply_filter)
+    btn_filter.pack(side=tk.LEFT, padx=5)
+
+    btn_clear = tk.Button(btn_frame, text="Убрать фильтр", command=clear_filter)
+    btn_clear.pack(side=tk.LEFT, padx=5)
+
     def on_build():
         selected_indices = listbox.curselection()
-        selected_procs = [unique_b[i] for i in selected_indices]
+        selected_procs = [listbox.get(i) for i in selected_indices]
         if len(selected_procs) == 0:
             fig = create_plotly_figure(G, group_to_color, title="Полный граф")
             plot(fig, filename="plotly_network_all.html", auto_open=True)
@@ -192,10 +217,10 @@ def main():
             fig = create_plotly_figure(subG, group_to_color, title="Подграф для выбранных процессов")
             plot(fig, filename="plotly_subnetwork.html", auto_open=True)
 
-    btn = tk.Button(root, text="Построить граф", command=on_build)
-    btn.pack(padx=10, pady=5)
+    btn_build = tk.Button(root, text="Построить граф", command=on_build)
+    btn_build.pack(padx=10, pady=5)
 
-    label2 = tk.Label(root, text="Если не выбрано ничего - строится весь граф")
+    label2 = tk.Label(root, text="(Если ничего не выбрано, строится весь граф)")
     label2.pack(padx=10, pady=5)
 
     root.mainloop()
